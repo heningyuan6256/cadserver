@@ -6,34 +6,35 @@ export default class Convertor {
   constructor(filesystem: Filesystem<FileSelf>[]) {
     this.filesystem = filesystem;
   }
-  run() {
+  async run() {
     for (const fsy of this.filesystem) {
       const fsyPath = this.getFileAddress(fsy);
-      const proc = Bun.spawnSync([
+      const proc = Bun.spawn([
         "./OnChainSW_Extension.exe",
         "-updateattr",
         fsyPath,
         ...fsy.data.approvalNodeInfo,
       ]);
-      const result = proc.stdout.toString();
-      console.log({ result, fsyPath }, "fsy");
+      const editCode = await proc.exited;
+      const result = await new Response(proc.stdout).text();
+      console.log(
+        { editCode, result, fsyPath, params: fsy.data.approvalNodeInfo },
+        "fsy"
+      );
       if (result == "success") {
         fsy.dimension = "modify";
       }
-      this.convertAttachments(fsy.attachments || []);
+      await this.convertAttachments(fsy.attachments || []);
     }
   }
 
-  convertAttachments(attachments: Filesystem<Attachment>[]) {
+  async convertAttachments(attachments: Filesystem<Attachment>[]) {
     for (const att of attachments) {
       const attPath = this.getFileAddress(att);
-      const proc = Bun.spawnSync([
-        "./OnChainSW_Extension.exe",
-        "-pdf",
-        attPath,
-      ]);
-      const result = proc.stdout.toString();
-      console.log({ result, attPath }, "attachments");
+      const proc = Bun.spawn(["./OnChainSW_Extension.exe", "-pdf", attPath]);
+      const editCode = await proc.exited;
+      const result = await new Response(proc.stdout).text();
+      console.log({ editCode, result, attPath }, "attachments");
       if (result == "success") {
         att.dimension = "modify";
       }
@@ -43,6 +44,6 @@ export default class Convertor {
   private getFileAddress(fsy: Filesystem<any>) {
     return `"${process.cwd()}${fsy.localAddress.replace("./", "\\")}\\${
       fsy.filename
-    }"`;
+    }"`.replace(/[\r\n]*/g, "");
   }
 }

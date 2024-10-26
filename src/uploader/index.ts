@@ -32,11 +32,16 @@ export default class Uploader {
     if (filesystem.dimension == "modify" || filesystem.dimension == "new") {
       const result = await filesystem.manage.upload({ file });
       const success = result.successful[0];
-      const uploadURL = success
-        ? `${result.successful[0].uploadURL}?name=${success.name}&size=${success.size}&extension=${success.extension}`
-        : "";
-      filesystem.data.uploadURL = uploadURL;
-      return uploadURL;
+      if (success) {
+        const uploadURL = success.uploadURL.split("/plm")[1];
+        const suffix = `?name=${success.name}&size=${success.size}&extension=${success.extension}`;
+        filesystem.data.uploadURL = `/plm${uploadURL}${
+          filesystem.isAttachment() ? "" : suffix
+        }`;
+      } else {
+        filesystem.data.uploadURL = "";
+      }
+      return filesystem.data.uploadURL;
     }
   }
 }

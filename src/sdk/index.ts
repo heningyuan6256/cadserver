@@ -93,7 +93,7 @@ export default class Sdk {
             this.initializeFileInfo(attachment, {
               fileId: attachment.rowId,
               fileName: attachmentName,
-              fileUrl: this.getFileUrl(attachment, urlAttr),
+              fileUrl: attachment.getAttrValue({ tab: attachmentTab, attrApicode: 'FileUrl' }),
               approvalNodeInfo,
             });
             attachment.isTransform = this.attachmentSuffix.some((suffix) =>
@@ -153,7 +153,7 @@ export default class Sdk {
             this.initializeFileInfo(attachment, {
               fileId: attachment.rowId,
               fileName: attachmentName,
-              fileUrl: this.getFileUrl(attachment, urlAttr),
+              fileUrl: attachment.getAttrValue({ tab: attachmentTab, attrApicode: 'FileUrl' }),
             });
             attachment.isTransform = this.attachmentSuffix.some((suffix) =>
               attachmentName.endsWith(suffix)
@@ -223,11 +223,12 @@ export default class Sdk {
         });
       }
     }
-    await this.uploadAttachment(filesystem);
+    const modifyFile = new ModifyFile(filesystem[0].manage);
+    const files = this.uploadAttachment(filesystem);
+    return await modifyFile.modifyAttachments(files);
   }
 
-  private async uploadAttachment(filesystem: Filesystem<FileSelf>[]) {
-    const modifyFile = new ModifyFile(filesystem[0].manage);
+  private uploadAttachment(filesystem: Filesystem<FileSelf>[]) {
     const files = filesystem
       .filter((fsy) => fsy.attachments?.length)
       .map((fsy) => {
@@ -242,6 +243,6 @@ export default class Sdk {
           }),
         };
       });
-    return await modifyFile.modifyAttachments(files);
+    return files;
   }
 }
