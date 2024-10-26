@@ -23,4 +23,16 @@ export default class Downloader {
       }
     }
   }
+
+  async runDownloadDraw() {
+    const filesystem = await this.filesystem;
+    for (const fsy of filesystem) {
+      const res = await fsy.manage.download();
+      await Bun.write(fsy.saveAddressWithDateAndVersion, res);
+      for (const attFsy of fsy.attachments || []) {
+        const res = await attFsy.manage.download();
+        await Bun.write(attFsy.saveAddressWithDateAndVersion, res);
+      }
+    }
+  }
 }

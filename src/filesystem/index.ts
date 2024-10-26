@@ -64,14 +64,19 @@ export class Filesystem<T extends FileSelf | Attachment> {
     return `${this.localAddress}/${this.filename}`;
   }
 
+  get saveAddressWithDateAndVersion() {
+    const instanceVersion = this.data.basicReadInstanceInfo.insVersion;
+    const publishTime = this.data.basicReadInstanceInfo.publishTime;
+    const insVersion = instanceVersion === "Draft" ? "草稿" : instanceVersion;
+    return `${this.localAddress}/${this.filename}-${insVersion}${publishTime ? `-${publishTime}` : ""}`;
+  }
+
   private formatUrl(url: string) {
     return url.replace("/plm", "");
   }
 
   /** 转为文件信息 */
-  static async toFile(
-    fsy: Filesystem<FileSelf | Attachment>
-  ): Promise<FileUploadInfo> {
+  static async toFile(fsy: Filesystem<FileSelf | Attachment>): Promise<FileUploadInfo> {
     const fileBuffer = await readFile(fsy.saveAddress);
     return {
       source: "file input",

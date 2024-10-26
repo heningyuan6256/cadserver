@@ -9,6 +9,7 @@
     "docker": "yarn build && docker build --platform linux/amd64 -t bun ."
   },
   "devDependencies": {
+    "@types/adm-zip": "^0.5.5",
     "bun-types": "latest"
   },
   "peerDependencies": {
@@ -16,6 +17,7 @@
   },
   "dependencies": {
     "@std/media-types": "npm:@jsr/std__media-types",
+    "adm-zip": "^0.5.16",
     "onchain-sdk": "file:.yalc/onchain-sdk"
   }
 }

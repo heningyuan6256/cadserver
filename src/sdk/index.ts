@@ -1,11 +1,5 @@
 // CO000212 test环境
-import {
-  CommonUtils,
-  BasicsAuthority,
-  utility,
-  IBaseInstance,
-  IRowInstance,
-} from "onchain-sdk";
+import { CommonUtils, BasicsAuthority, utility, IBaseInstance, IRowInstance } from "onchain-sdk";
 import { BasicsAttribute } from "onchain-sdk/lib/src/utils/attribute";
 import { Attachment, FileInfo, FileSelf } from "./types";
 import { Filesystem } from "../filesystem";
@@ -31,14 +25,9 @@ export default class Sdk {
     if (affectFileTab) {
       const affectFiles = await affectFileTab.getTabData();
       // 过滤文件
-      const instanceList = await this.getInstances(
-        this.filterSuffix(affectFiles)
-      );
+      const instanceList = await this.getInstances(this.filterSuffix(affectFiles));
       for (const instance of instanceList) {
-        const urlAttr: BasicsAttribute | undefined = utility.getAttrOf(
-          instance.BasicAttrs,
-          "FileUrl"
-        );
+        const urlAttr: BasicsAttribute | undefined = utility.getAttrOf(instance.BasicAttrs, "FileUrl");
         this.initializeFileInfo(instance, {
           fileId: instance.basicReadInstanceInfo.insId,
           fileName: instance.basicReadInstanceInfo.insDesc,
@@ -60,9 +49,7 @@ export default class Sdk {
               fileName: attachmentName,
               fileUrl: this.getFileUrl(attachment, urlAttr),
             });
-            attachment.isTransform = this.attachmentSuffix.some((suffix) =>
-              attachmentName.endsWith(suffix)
-            );
+            attachment.isTransform = this.attachmentSuffix.some((suffix) => attachmentName.endsWith(suffix));
           });
           instance.attachments = attachments;
         } else {
@@ -75,25 +62,68 @@ export default class Sdk {
     }
   }
 
+  /**
+   * 获取结构数据
+   */
+  async getStructureTab(insId: string) {
+    const instanceP = (await this.common.getInstanceById(insId)) as FileSelf;
+    const tab = await instanceP.getTabByApicode({
+      apicode: "Structure",
+    });
+
+    if (tab) {
+      const StructureData = await tab.getTabData();
+      const tabFlattenDatas = utility.ArrayAttributeFlat(StructureData) as IRowInstance[];
+      const instanceList = await this.getInstances(this.filterSuffix(tabFlattenDatas));
+
+      for (const instance of [instanceP, ...instanceList]) {
+        const urlAttr: BasicsAttribute | undefined = utility.getAttrOf(instance.BasicAttrs, "FileUrl");
+        this.initializeFileInfo(instance, {
+          fileId: instance.basicReadInstanceInfo.insId,
+          fileName: instance.basicReadInstanceInfo.insDesc,
+          fileUrl: this.getFileUrl(instance, urlAttr),
+        });
+        const attachmentTab = await instance.getTabByApicode({
+          apicode: "Attachments",
+        });
+        if (attachmentTab) {
+          let attachments = (await attachmentTab.getTabData()) as Attachment[];
+          attachments.forEach((attachment) => {
+            const attachmentName =
+              attachment.getAttrValue({
+                tab: attachmentTab,
+                attrApicode: "FileName",
+              }) || "";
+            this.initializeFileInfo(attachment, {
+              fileId: attachment.rowId,
+              fileName: attachmentName,
+              fileUrl: this.getFileUrl(attachment, urlAttr),
+            });
+            attachment.isTransform = this.attachmentSuffix.some((suffix) => attachmentName.endsWith(suffix));
+          });
+          instance.attachments = attachments;
+        } else {
+          instance.attachments = [];
+        }
+      }
+
+      return instanceList;
+    } else {
+      return [];
+    }
+  }
+
   filterSuffix(data: IRowInstance[]) {
     return data.filter((row) =>
-      this.fileSuffix.some(
-        (suffix) =>
-          row.insDesc.endsWith(suffix) && !BasicsAuthority.isMosaic(row.insId)
-      )
+      this.fileSuffix.some((suffix) => row.insDesc.endsWith(suffix) && !BasicsAuthority.isMosaic(row.insId))
     );
   }
 
   getInstances(data: IRowInstance[]) {
-    return Promise.all(
-      data.map((row) => this.common.getInstanceById<FileSelf>(row.insId))
-    );
+    return Promise.all(data.map((row) => this.common.getInstanceById<FileSelf>(row.insId)));
   }
 
-  private getFileUrl(
-    instance: IBaseInstance | IRowInstance,
-    attr?: BasicsAttribute
-  ) {
+  private getFileUrl(instance: IBaseInstance | IRowInstance, attr?: BasicsAttribute) {
     let fileUrl: string = "";
     if (attr) {
       if (this.isInstance(instance)) {
@@ -112,10 +142,7 @@ export default class Sdk {
     return !!ins.basicReadInstanceInfo;
   }
 
-  private initializeFileInfo(
-    instance: IBaseInstance | IRowInstance,
-    info: FileInfo
-  ) {
+  private initializeFileInfo(instance: IBaseInstance | IRowInstance, info: FileInfo) {
     Object.assign(instance, info);
   }
 
