@@ -5,10 +5,13 @@ import {
   utility,
   IBaseInstance,
   IRowInstance,
+  ModifyFile,
+  IChangeInstance,
 } from "onchain-sdk";
 import { BasicsAttribute } from "onchain-sdk/lib/src/utils/attribute";
 import { Attachment, FileInfo, FileSelf } from "./types";
 import { Filesystem } from "../filesystem";
+import moment from "moment";
 
 export default class Sdk {
   common: CommonUtils;
@@ -23,7 +26,35 @@ export default class Sdk {
   }
 
   async getAffectFiles(insId: string) {
-    const change = await this.common.getInstanceById(insId);
+    const change = await this.common.getInstanceById<IChangeInstance>(insId);
+    await change.getWorkflow();
+    const review = change.basicReadInstanceInfo.workflowNodes.find(
+      (node) => node.apicode == "Review"
+    )!;
+    const { allData, usersData } = await change.getWorkflowApprovalRecord();
+    const approvals = allData.filter(
+      (data) => data.node_id == review.id && data.approve_instance_id
+    );
+    const users = approvals
+      .map((data) => {
+        const user = usersData.find(
+          (user) => user.value == data.approve_instance_id
+        )!;
+        return user.label;
+      })
+      .join(",");
+
+    const date = approvals
+      .map((data) => {
+        return {
+          date: (data.update_time as string).split(" ")[0],
+          valueOf: moment(data.update_time).valueOf(),
+        };
+      })
+      .sort((a, b) => a.valueOf - b.valueOf);
+    const latestDate = date[date.length - 1].date;
+    const approvalNodeInfo = `${review.name}=${users} ${review.name}时间=${latestDate}`;
+
     const affectFileTab = await change.getTabByApicode({
       apicode: "AffectFiles",
     });
@@ -42,6 +73,7 @@ export default class Sdk {
           fileId: instance.basicReadInstanceInfo.insId,
           fileName: instance.basicReadInstanceInfo.insDesc,
           fileUrl: this.getFileUrl(instance, urlAttr),
+          approvalNodeInfo,
         });
         const attachmentTab = await instance.getTabByApicode({
           apicode: "Attachments",
@@ -58,6 +90,7 @@ export default class Sdk {
               fileId: attachment.rowId,
               fileName: attachmentName,
               fileUrl: this.getFileUrl(attachment, urlAttr),
+              approvalNodeInfo,
             });
             attachment.isTransform = this.attachmentSuffix.some((suffix) =>
               attachmentName.endsWith(suffix)
@@ -120,11 +153,15 @@ export default class Sdk {
 
   async updateFile(filesystem: Filesystem<FileSelf>[]) {
     for (const fsy of filesystem) {
+      await fsy.data.updateInstanceWithOutAuth({
+        attrMap: { FileUrl: fsy.data.uploadURL! || fsy.data.fileUrl },
+      });
     }
     await this.uploadAttachment(filesystem);
   }
 
   private async uploadAttachment(filesystem: Filesystem<FileSelf>[]) {
+    const modifyFile = new ModifyFile(filesystem[0].manage);
     const files = filesystem
       .filter((fsy) => fsy.attachments?.length)
       .map((fsy) => {
@@ -139,10 +176,6 @@ export default class Sdk {
           }),
         };
       });
-    const data = {
-      tenantId: filesystem[0].manage.tenantId,
-      files,
-    };
-    return data;
+    return await modifyFile.modifyAttachments(files);
   }
 }

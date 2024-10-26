@@ -4,6 +4,7 @@ interface FileInfo {
   fileUrl: string;
   fileId: string;
   fileName: string;
+  approvalNodeInfo: string;
   uploadURL?: string;
 }
 
