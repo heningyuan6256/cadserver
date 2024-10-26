@@ -20,7 +20,10 @@ export default class Sdk {
   constructor(params: SdkBasicInfo) {
     this.common = new CommonUtils({
       baseUrl: "http://192.168.0.62:8017/api/plm",
-      fetch,
+      fetch: (...params: [any, any]) => {
+        console.log(params)
+        return fetch(...params);
+      },
       isServe: true,
       ...params,
     });
@@ -54,7 +57,7 @@ export default class Sdk {
       })
       .sort((a, b) => a.valueOf - b.valueOf);
     const latestDate = date[date.length - 1].date;
-    const approvalNodeInfo = `${review.name}=${users} ${review.name}时间=${latestDate}`;
+    const approvalNodeInfo =  [`"${review.name}=${users}"`, `"${review.name}时间=${latestDate}"`];
 
     const affectFileTab = await change.getTabByApicode({
       apicode: "AffectFiles",
@@ -62,9 +65,14 @@ export default class Sdk {
     if (affectFileTab) {
       const affectFiles = await affectFileTab.getTabData();
       // 过滤文件
-      const instanceList = await this.getInstances(this.filterSuffix(affectFiles));
+      const instanceList = await this.getInstances(
+        this.filterSuffix(affectFiles)
+      );
       for (const instance of instanceList) {
-        const urlAttr: BasicsAttribute | undefined = utility.getAttrOf(instance.BasicAttrs, "FileUrl");
+        const urlAttr: BasicsAttribute | undefined = utility.getAttrOf(
+          instance.BasicAttrs,
+          "FileUrl"
+        );
         this.initializeFileInfo(instance, {
           fileId: instance.basicReadInstanceInfo.insId,
           fileName: instance.basicReadInstanceInfo.insDesc,
@@ -88,7 +96,9 @@ export default class Sdk {
               fileUrl: this.getFileUrl(attachment, urlAttr),
               approvalNodeInfo,
             });
-            attachment.isTransform = this.attachmentSuffix.some((suffix) => attachmentName.endsWith(suffix));
+            attachment.isTransform = this.attachmentSuffix.some((suffix) =>
+              attachmentName.endsWith(suffix)
+            );
           });
           instance.attachments = attachments;
         } else {
@@ -112,11 +122,18 @@ export default class Sdk {
 
     if (tab) {
       const StructureData = await tab.getTabData();
-      const tabFlattenDatas = utility.ArrayAttributeFlat(StructureData) as IRowInstance[];
-      const instanceList = await this.getInstances(this.filterSuffix(tabFlattenDatas));
+      const tabFlattenDatas = utility.ArrayAttributeFlat(
+        StructureData
+      ) as IRowInstance[];
+      const instanceList = await this.getInstances(
+        this.filterSuffix(tabFlattenDatas)
+      );
 
       for (const instance of [instanceP, ...instanceList]) {
-        const urlAttr: BasicsAttribute | undefined = utility.getAttrOf(instance.BasicAttrs, "FileUrl");
+        const urlAttr: BasicsAttribute | undefined = utility.getAttrOf(
+          instance.BasicAttrs,
+          "FileUrl"
+        );
         this.initializeFileInfo(instance, {
           fileId: instance.basicReadInstanceInfo.insId,
           fileName: instance.basicReadInstanceInfo.insDesc,
@@ -138,7 +155,9 @@ export default class Sdk {
               fileName: attachmentName,
               fileUrl: this.getFileUrl(attachment, urlAttr),
             });
-            attachment.isTransform = this.attachmentSuffix.some((suffix) => attachmentName.endsWith(suffix));
+            attachment.isTransform = this.attachmentSuffix.some((suffix) =>
+              attachmentName.endsWith(suffix)
+            );
           });
           instance.attachments = attachments;
         } else {
@@ -154,15 +173,23 @@ export default class Sdk {
 
   filterSuffix(data: IRowInstance[]) {
     return data.filter((row) =>
-      this.fileSuffix.some((suffix) => row.insDesc.endsWith(suffix) && !BasicsAuthority.isMosaic(row.insId))
+      this.fileSuffix.some(
+        (suffix) =>
+          row.insDesc.endsWith(suffix) && !BasicsAuthority.isMosaic(row.insId)
+      )
     );
   }
 
   getInstances(data: IRowInstance[]) {
-    return Promise.all(data.map((row) => this.common.getInstanceById<FileSelf>(row.insId)));
+    return Promise.all(
+      data.map((row) => this.common.getInstanceById<FileSelf>(row.insId))
+    );
   }
 
-  private getFileUrl(instance: IBaseInstance | IRowInstance, attr?: BasicsAttribute) {
+  private getFileUrl(
+    instance: IBaseInstance | IRowInstance,
+    attr?: BasicsAttribute
+  ) {
     let fileUrl: string = "";
     if (attr) {
       if (this.isInstance(instance)) {
@@ -181,15 +208,20 @@ export default class Sdk {
     return !!ins.basicReadInstanceInfo;
   }
 
-  private initializeFileInfo(instance: IBaseInstance | IRowInstance, info: Partial<FileInfo>) {
+  private initializeFileInfo(
+    instance: IBaseInstance | IRowInstance,
+    info: Partial<FileInfo>
+  ) {
     Object.assign(instance, info);
   }
 
   async updateFile(filesystem: Filesystem<FileSelf>[]) {
     for (const fsy of filesystem) {
-      await fsy.data.updateInstanceWithOutAuth({
-        attrMap: { FileUrl: fsy.data.uploadURL! || fsy.data.fileUrl },
-      });
+      if (fsy.data.uploadURL) {
+        await fsy.data.updateInstanceWithOutAuth({
+          attrMap: { FileUrl: fsy.data.uploadURL },
+        });
+      }
     }
     await this.uploadAttachment(filesystem);
   }

@@ -29,12 +29,14 @@ export default class Uploader {
     filesystem: Filesystem<FileSelf | Attachment>,
     file: FileUploadInfo
   ) {
-    const result = await filesystem.manage.upload({ file });
-    const success = result.successful[0];
-    const uploadURL = success
-      ? `${result.successful[0].uploadURL}?name=${success.name}&size=${success.size}&extension=${success.extension}`
-      : "";
-    filesystem.data.uploadURL = uploadURL;
-    return uploadURL;
+    if (filesystem.dimension == "modify" || filesystem.dimension == "new") {
+      const result = await filesystem.manage.upload({ file });
+      const success = result.successful[0];
+      const uploadURL = success
+        ? `${result.successful[0].uploadURL}?name=${success.name}&size=${success.size}&extension=${success.extension}`
+        : "";
+      filesystem.data.uploadURL = uploadURL;
+      return uploadURL;
+    }
   }
 }

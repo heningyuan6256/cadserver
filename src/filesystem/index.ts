@@ -5,6 +5,7 @@ import { mkdir, readFile } from "node:fs/promises";
 import { FileUploadInfo } from "../uploader/type";
 
 export class Filesystem<T extends FileSelf | Attachment> {
+  static downloadAddress = './transform'
   type = "application/octet-stream";
   dimension: "original" | "modify" | "new" = "original";
   data: T;
@@ -19,7 +20,7 @@ export class Filesystem<T extends FileSelf | Attachment> {
     if (parent) {
       this.localAddress = `${parent.localAddress}`;
     } else {
-      this.localAddress = `./transform`;
+      this.localAddress = Filesystem.downloadAddress;
     }
 
     this.manage = new FileManage(common, {
@@ -111,6 +112,4 @@ export class Filesystem<T extends FileSelf | Attachment> {
     }
     return files;
   }
-
-  static remove(files: Filesystem<FileSelf>[]) {}
 }

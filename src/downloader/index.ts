@@ -1,6 +1,7 @@
 import { CommonUtils, FileManage } from "onchain-sdk";
 import { FileSelf } from "../sdk/types";
 import { Filesystem } from "../filesystem";
+import { unlink } from "node:fs/promises";
 
 export default class Downloader {
   data: FileSelf[];
@@ -34,5 +35,9 @@ export default class Downloader {
         await Bun.write(attFsy.saveAddressWithDateAndVersion, res);
       }
     }
+  }
+
+  async remove() {
+    await unlink(Filesystem.downloadAddress);
   }
 }

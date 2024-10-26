@@ -8,24 +8,41 @@ export default class Convertor {
   }
   run() {
     for (const fsy of this.filesystem) {
+      const fsyPath = this.getFileAddress(fsy);
       const proc = Bun.spawnSync([
-        "OnChainSW_Extension.exe",
-        `-updateattr "${this.getFileAddress(fsy)}" ${fsy.data.approvalNodeInfo}`,
+        "./OnChainSW_Extension.exe",
+        "-updateattr",
+        fsyPath,
+        ...fsy.data.approvalNodeInfo,
       ]);
+      const result = proc.stdout.toString();
+      console.log({ result, fsyPath }, "fsy");
+      if (result == "success") {
+        fsy.dimension = "modify";
+      }
       this.convertAttachments(fsy.attachments || []);
     }
   }
 
   convertAttachments(attachments: Filesystem<Attachment>[]) {
     for (const att of attachments) {
+      const attPath = this.getFileAddress(att);
       const proc = Bun.spawnSync([
-        "OnChainSW_Extension.exe",
-        `-pdf "${this.getFileAddress(att)}"`,
+        "./OnChainSW_Extension.exe",
+        "-pdf",
+        attPath,
       ]);
+      const result = proc.stdout.toString();
+      console.log({ result, attPath }, "attachments");
+      if (result == "success") {
+        att.dimension = "modify";
+      }
     }
   }
 
   private getFileAddress(fsy: Filesystem<any>) {
-    return `${process.cwd()}${fsy.localAddress.replace("./", "\\")}\\${fsy.filename}`;
+    return `"${process.cwd()}${fsy.localAddress.replace("./", "\\")}\\${
+      fsy.filename
+    }"`;
   }
 }
