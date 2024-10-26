@@ -1,0 +1,21 @@
+{
+  "name": "bun-onchain",
+  "module": "src/serve.ts",
+  "type": "module",
+  "scripts": {
+    "dev": "bun --watch src/serve.ts",
+    "build": "bun build ./src/serve.ts --outfile=bundle.js",
+    "serve": "bun src/serve.ts",
+    "docker": "yarn build && docker build --platform linux/amd64 -t bun ."
+  },
+  "devDependencies": {
+    "bun-types": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "@std/media-types": "npm:@jsr/std__media-types",
+    "onchain-sdk": "file:.yalc/onchain-sdk"
+  }
+}
