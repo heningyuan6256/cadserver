@@ -1,4 +1,4 @@
-import { transform } from "./app";
+import { downloadDraw, transform } from "./app";
 import { SingleQueue } from "./queue";
 import './mod';
 
@@ -15,6 +15,8 @@ Bun.serve({
       return new Response("Home page!");
     }
     if (url.pathname === "/downloadDraw") {
+      const data = (await request.json()) as TransformArgument;
+      transformQueue.push(downloadDraw.bind(null, ({ ...data, token })));
       return new Response("Blog!");
     }
     return new Response("404!");

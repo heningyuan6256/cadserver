@@ -16,3 +16,13 @@ export async function transform(params: TransformArgument) {
   await uploader.run();
   await sdk.updateFile(filesystem);
 }
+
+export async function downloadDraw(params: TransformArgument) {
+  const sdk = new Sdk(params);
+  const data = await sdk.getStructureTab(params.insId);
+  const downloader = new Downloader(data, sdk.common);
+  await downloader.run();
+  const filesystem = await downloader.filesystem;
+  const convertor = new Convertor(filesystem);
+  await convertor.run();
+}
