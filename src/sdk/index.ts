@@ -18,6 +18,7 @@ export default class Sdk {
     this.common = new CommonUtils({
       baseUrl: "http://192.168.0.62:8017/api/plm",
       fetch,
+      isServe: true,
       ...params,
     });
   }
